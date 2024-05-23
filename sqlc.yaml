@@ -1,0 +1,11 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "./db/queries/"
+    schema: "./db/migration/"
+    # database:
+    #     uri: postgres://root:fHWFyt98gPR51h3NxjcroWoIscjt7QOb@dpg-cp649mmn7f5s73a6r8ag-a.oregon-postgres.render.com/simple_bank_7qc2
+    gen:
+      go:
+        package: "db"
+        out: "./db/sqlc"
