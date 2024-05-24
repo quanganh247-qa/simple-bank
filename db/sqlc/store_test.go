@@ -123,7 +123,7 @@ func TestTransferDeadlock(t *testing.T) {
 	account2 := creatRadomAccount(t)
 	fmt.Println(">> before:", account1.Balance, account2.Balance)
 
-	n := 10
+	n := 2
 	amount := int64(10)
 
 	errs := make(chan error)

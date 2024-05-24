@@ -7,20 +7,25 @@ import (
 	"testing"
 
 	_ "github.com/lib/pq"
+	"tutorial.sqlc.dev/app/db/util"
 )
 
-const (
-	dbDriver = "postgres"
-	dbSource = "postgres://root:fHWFyt98gPR51h3NxjcroWoIscjt7QOb@dpg-cp649mmn7f5s73a6r8ag-a.oregon-postgres.render.com/simple_bank_7qc2"
-)
+// const (
+// 	dbDriver = "postgres"
+// 	dbSource = "postgres://root:fHWFyt98gPR51h3NxjcroWoIscjt7QOb@dpg-cp649mmn7f5s73a6r8ag-a.oregon-postgres.render.com/simple_bank_7qc2"
+// )
 
 var testQueries *Queries
 var db *sql.DB
 
 func TestMain(m *testing.M) {
+	config, e := util.LoadConfig("../..")
+	if e != nil {
+		log.Fatal("cannot loaf config:", e)
+	}
 	// Establish a database connection
 	var err error
-	db, err = sql.Open(dbDriver, dbSource)
+	db, err = sql.Open(config.DBDriver, config.DBSource)
 	if err != nil {
 		log.Fatal("cannot connect to db:", err)
 	}
