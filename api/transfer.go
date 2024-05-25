@@ -1,6 +1,8 @@
 package api
 
 import (
+	"database/sql"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -21,13 +23,13 @@ func (server *Server) createTransfer(ctx *gin.Context) {
 		return
 	}
 
-	// if !server.validAccount(ctx, req.FromAccountID, req.Currency) {
-	// 	return
-	// }
+	if !server.validAccount(ctx, req.FromAccountID, req.Currency) {
+		return
+	}
 
-	// if !server.validAccount(ctx, req.ToAccountID, req.Currency) {
-	// 	return
-	// }
+	if !server.validAccount(ctx, req.ToAccountID, req.Currency) {
+		return
+	}
 
 	arg := db.TransferTxParams{
 		FromAccountId: req.FromAccountID,
@@ -44,20 +46,20 @@ func (server *Server) createTransfer(ctx *gin.Context) {
 
 }
 
-// func (server *Server) validAccount(ctx *gin.Context, accounID int64, currency string) bool {
-// 	acc, err := server.store.GetAccount(ctx, accounID)
-// 	if err != nil {
-// 		if err == sql.ErrNoRows {
-// 			ctx.JSON(http.StatusBadRequest, errorMessage(err))
-// 			return false
-// 		}
-// 		ctx.JSON(http.StatusInternalServerError, errorMessage(err))
-// 		return false
-// 	}
-// 	if currency != acc.Currency {
-// 		err := fmt.Errorf("account [%d] currency mismatch: %s cs %s ", accounID, acc.Currency, currency)
-// 		ctx.JSON(http.StatusBadRequest, errorMessage(err))
-// 		return false
-// 	}
-// 	return true
-// }
+func (server *Server) validAccount(ctx *gin.Context, accounID int64, currency string) bool {
+	acc, err := server.store.GetAccount(ctx, accounID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusBadRequest, errorMessage(err))
+			return false
+		}
+		ctx.JSON(http.StatusInternalServerError, errorMessage(err))
+		return false
+	}
+	if currency != acc.Currency {
+		err := fmt.Errorf("account [%d] currency mismatch: %s cs %s ", accounID, acc.Currency, currency)
+		ctx.JSON(http.StatusBadRequest, errorMessage(err))
+		return false
+	}
+	return true
+}
