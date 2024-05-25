@@ -13,6 +13,11 @@ migrateup:
 migratedown:
 	migrate -path db/migration -database "postgres://root:fHWFyt98gPR51h3NxjcroWoIscjt7QOb@dpg-cp649mmn7f5s73a6r8ag-a.oregon-postgres.render.com/simple_bank_7qc2"  -verbose down
 
+migrateup1:
+	migrate -path db/migration -database "postgres://root:fHWFyt98gPR51h3NxjcroWoIscjt7QOb@dpg-cp649mmn7f5s73a6r8ag-a.oregon-postgres.render.com/simple_bank_7qc2"  -verbose up 1
+
+migratedown1:
+	migrate -path db/migration -database "postgres://root:fHWFyt98gPR51h3NxjcroWoIscjt7QOb@dpg-cp649mmn7f5s73a6r8ag-a.oregon-postgres.render.com/simple_bank_7qc2"  -verbose down 1
 sqlc:
 	sqlc generate
 
@@ -25,4 +30,4 @@ server:
 mock:
 	mockgen -package mockdb -destination db/mock/store.go tutorial.sqlc.dev/app/db/sqlc Store
 
-.PHONY: postgres createdb dropdb migrateup migratedown sqlc test 
+.PHONY: postgres createdb dropdb migrateup migratedown  migrateup1 migratedown1 sqlc test server mock
