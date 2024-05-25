@@ -6,21 +6,26 @@ import (
 	"fmt"
 )
 
-type Store struct {
+type Store interface {
+	Querier
+	TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error)
+}
+
+type SQLStore struct {
 	*Queries         // Embeds Queries struct to inherit its methods
 	db       *sql.DB // Holds a reference to the database connection
 }
 
 // It initializes a new Store instance with a given database connection.
-func NewsStore(db *sql.DB) *Store {
-	return &Store{
+func NewsStore(db *sql.DB) Store {
+	return &SQLStore{
 		db:      db,
 		Queries: New(db),
 	}
 	//Returns: A pointer to a new Store instance.
 }
 
-func (store *Store) execTx(ctx context.Context, fn func(*Queries) error) error {
+func (store *SQLStore) execTx(ctx context.Context, fn func(*Queries) error) error {
 	tx, err := store.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -55,7 +60,7 @@ type TransferTxResult struct {
 
 // Transfer performs a maonry transfer from one account to the other.
 // It creates a transfer record , add accs entries, and update accounts' balance within a single transaction
-func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error) {
+func (store *SQLStore) TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error) {
 	var result TransferTxResult
 
 	err := store.execTx(ctx, func(q *Queries) error {
