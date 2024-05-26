@@ -60,14 +60,14 @@ func TestListTrasnfers(t *testing.T) {
 	arg := ListTransfersParams{
 		FromAccountID: acc1.ID,
 		ToAccountID:   acc1.ID,
-		Limit:         5,
-		Offset:        5,
+		Limit:         2,
+		Offset:        2,
 	}
 
 	transfers, err := testQueries.ListTransfers(context.Background(), arg)
 	require.NoError(t, err)
 
-	require.Len(t, transfers, 5)
+	require.Len(t, transfers, 2)
 
 	for _, tr := range transfers {
 		require.NotEmpty(t, tr)

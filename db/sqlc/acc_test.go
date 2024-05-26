@@ -12,8 +12,10 @@ import (
 )
 
 func creatRadomAccount(t *testing.T) Account {
+
+	user := createRadomUser(t)
 	params := CreateAccountParams{
-		Owner:    util.RandomOwner(),
+		Owner:    user.Username,
 		Balance:  util.RandomMoney(),
 		Currency: util.RandomCurrency(),
 	}

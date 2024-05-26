@@ -5,6 +5,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/lib/pq"
+	_ "github.com/lib/pq"
 	db "tutorial.sqlc.dev/app/db/sqlc"
 )
 
@@ -28,8 +30,17 @@ func (server *Server) createAccount(ctx *gin.Context) {
 
 	account, err := server.store.CreateAccount(ctx, arg)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorMessage(err))
-		return
+		// handle DB errors in Golang correctly
+		if pqError, ok := err.(*pq.Error); ok {
+			switch pqError.Code.Name() {
+			case "foreign_key_violation", "unique_violation":
+				ctx.JSON(http.StatusForbidden, errorMessage(err))
+				return
+			}
+			ctx.JSON(http.StatusForbidden, errorMessage(err))
+			return
+		}
+
 	}
 	ctx.JSON(http.StatusOK, account)
 

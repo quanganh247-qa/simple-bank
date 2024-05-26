@@ -37,13 +37,6 @@ func TestMain(m *testing.M) {
 		log.Fatalf("testQueries is nil")
 	}
 
-	// // Retrieve an account for testing
-	// acc, err := testQueries.GetAccount(context.Background(), 1)
-	// if err != nil {
-	// 	log.Fatalf("error retrieving account: %v", err)
-	// }
-	// log.Printf("Account Details: Owner=%s, Balance=%d, Currency=%s", acc.Owner, acc.Balance, acc.Currency)
-
 	// Run the tests
 	code := m.Run()
 
