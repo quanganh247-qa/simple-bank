@@ -30,7 +30,6 @@ func (store *SQLStore) execTx(ctx context.Context, fn func(*Queries) error) erro
 	if err != nil {
 		return err
 	}
-
 	//Creates a new Queries instance using the transaction
 	q := New(tx)
 	//Excute queries
@@ -92,14 +91,11 @@ func (store *SQLStore) TransferTx(ctx context.Context, arg TransferTxParams) (Tr
 		}
 
 		//Update accounts' balance
-
 		if arg.FromAccountId < arg.ToAccountId {
 			result.FromAccount, result.ToAccount, err = addMoney(ctx, q, arg.FromAccountId, -arg.Amount, arg.ToAccountId, arg.Amount)
 		} else {
 			result.ToAccount, result.FromAccount, err = addMoney(ctx, q, arg.ToAccountId, arg.Amount, arg.FromAccountId, -arg.Amount)
-
 		}
-
 		return nil
 	})
 	return result, err
