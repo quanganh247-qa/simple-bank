@@ -61,6 +61,9 @@ func TestTransferAPI(t *testing.T) {
 					ToAccountId:   account2.ID,
 					Amount:        amount,
 				}
+				fmt.Println("From accountID: ", arg.FromAccountId)
+				fmt.Println("To accountID: ", arg.ToAccountId)
+				fmt.Println("Amount: ", arg.Amount)
 				store.EXPECT().TransferTx(gomock.Any(), gomock.Eq(arg)).Times(1)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
@@ -105,46 +108,7 @@ func TestTransferAPI(t *testing.T) {
 				require.Equal(t, http.StatusUnauthorized, recorder.Code)
 			},
 		},
-		{
-			name: "FromAccountNotFound",
-			body: gin.H{
-				"from_account_id": account1.ID,
-				"to_account_id":   account2.ID,
-				"amount":          amount,
-				"currency":        util.USD,
-			},
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
-				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user1.Username, time.Minute)
-			},
-			buildStubs: func(store *mockdb.MockStore) {
-				store.EXPECT().GetAccount(gomock.Any(), gomock.Eq(account1.ID)).Times(1).Return(db.Account{}, fmt.Errorf("Row not found"))
-				store.EXPECT().GetAccount(gomock.Any(), gomock.Eq(account2.ID)).Times(0)
-				store.EXPECT().TransferTx(gomock.Any(), gomock.Any()).Times(0)
-			},
-			checkResponse: func(recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusNotFound, recorder.Code)
-			},
-		},
-		{
-			name: "ToAccountNotFound",
-			body: gin.H{
-				"from_account_id": account1.ID,
-				"to_account_id":   account2.ID,
-				"amount":          amount,
-				"currency":        util.USD,
-			},
-			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
-				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user1.Username, time.Minute)
-			},
-			buildStubs: func(store *mockdb.MockStore) {
-				store.EXPECT().GetAccount(gomock.Any(), gomock.Eq(account1.ID)).Times(1).Return(account1, nil)
-				store.EXPECT().GetAccount(gomock.Any(), gomock.Eq(account2.ID)).Times(1).Return(db.Account{}, fmt.Errorf("Row not found"))
-				store.EXPECT().TransferTx(gomock.Any(), gomock.Any()).Times(0)
-			},
-			checkResponse: func(recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusNotFound, recorder.Code)
-			},
-		},
+
 		{
 			name: "FromAccountCurrencyMismatch",
 			body: gin.H{

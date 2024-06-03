@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"
@@ -18,6 +19,7 @@ import (
 	"github.com/techschool/simplebank/util"
 	mockdb "tutorial.sqlc.dev/app/db/mock"
 	db "tutorial.sqlc.dev/app/db/sqlc"
+	"tutorial.sqlc.dev/app/db/token"
 )
 
 type eqCreateUserParamsMatcher struct {
@@ -55,6 +57,7 @@ func TestCreateUserAPI(t *testing.T) {
 		name          string
 		body          gin.H
 		buildStubs    func(store *mockdb.MockStore)
+		setupAuth     func(t *testing.T, request *http.Request, tokenMaker token.Maker)
 		checkResponse func(recoder *httptest.ResponseRecorder)
 	}{
 		{
@@ -65,16 +68,24 @@ func TestCreateUserAPI(t *testing.T) {
 				"full_name": user.FullName,
 				"email":     user.Email,
 			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildStubs: func(store *mockdb.MockStore) {
 				arg := db.CreateUserParams{
 					Username: user.Username,
 					FullName: user.FullName,
 					Email:    user.Email,
 				}
+
+				fmt.Println("USN: ", arg.Username)
+				fmt.Println("FullName: ", arg.FullName)
+				fmt.Println("Email: ", arg.Email)
 				store.EXPECT().
 					CreateUser(gomock.Any(), EqCreateUserParams(arg, password)).
 					Times(1).
 					Return(user, nil)
+
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusOK, recorder.Code)
@@ -99,24 +110,7 @@ func TestCreateUserAPI(t *testing.T) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
 			},
 		},
-		// {
-		// 	name: "DuplicateUsername",
-		// 	body: gin.H{
-		// 		"username":  user.Username,
-		// 		"password":  password,
-		// 		"full_name": user.FullName,
-		// 		"email":     user.Email,
-		// 	},
-		// 	buildStubs: func(store *mockdb.MockStore) {
-		// 		store.EXPECT().
-		// 			CreateUser(gomock.Any(), gomock.Any()).
-		// 			Times(1).
-		// 			Return(db.User{}, fmt.Errorf("connot not dublicate name"))
-		// 	},
-		// 	checkResponse: func(recorder *httptest.ResponseRecorder) {
-		// 		require.Equal(t, http.StatusForbidden, recorder.Code)
-		// 	},
-		// },
+
 		{
 			name: "InvalidUsername",
 			body: gin.H{
@@ -223,4 +217,60 @@ func requireBodyMatchUser(t *testing.T, body *bytes.Buffer, user db.User) {
 	require.Equal(t, user.FullName, gotUser.FullName)
 	require.Equal(t, user.Email, gotUser.Email)
 	require.Empty(t, gotUser.HashedPassword)
+}
+
+func TestLoginAPI(t *testing.T) {
+	user, password := randomUser(t)
+
+	testCases := []struct {
+		name       string
+		body       gin.H
+		buildStubs func(store *mockdb.MockStore)
+
+		checkResponse func(recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name: "OK",
+			body: gin.H{
+				"username": user.Username,
+				"password": password,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUser(gomock.Any(), gomock.Eq(user.Username)).
+					Times(1).
+					Return(user, nil)
+				store.EXPECT().CreateSession(gomock.Any(), gomock.Any()).Times(1)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+			},
+		},
+	}
+	for i := range testCases {
+		tc := testCases[i]
+
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			store := mockdb.NewMockStore(ctrl)
+			tc.buildStubs(store)
+
+			server := newTestServer(t, store)
+			recorder := httptest.NewRecorder()
+
+			// Marshal body data to JSON
+			data, err := json.Marshal(tc.body)
+			require.NoError(t, err)
+
+			url := "/users/login"
+			request, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(data))
+			require.NoError(t, err)
+
+			server.router.ServeHTTP(recorder, request)
+			tc.checkResponse(recorder)
+		})
+	}
+
 }
