@@ -19,7 +19,7 @@ jobs:
 
       # Step 2: Configure AWS credentials
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1  # Use the AWS credentials configuration action
+        uses: aws-actions/configure-aws-credentials@v4  # Use the AWS credentials configuration action
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}  # AWS access key from secrets
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}  # AWS secret access key from secrets
@@ -30,7 +30,7 @@ jobs:
       # Step 3: Log in to Amazon ECR (Elastic Container Registry)
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1  # Use the ECR login action to authenticate Docker with ECR
+        uses: aws-actions/amazon-ecr-login@v2  # Use the ECR login action to authenticate Docker with ECR
 
       # Step 4: Build, tag, and push Docker image to Amazon ECR
       - name: Build, tag, and push docker image to Amazon ECR
