@@ -4,7 +4,8 @@ name: Deploy to production
 on:
   push:
     branches: [ "main" ]
-
+  pull_request:
+      branches: [ "main" ]
 
 jobs:
 
@@ -19,25 +20,26 @@ jobs:
 
       # Step 2: Configure AWS credentials
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1  # Use the AWS credentials configuration action
+        uses: aws-actions/configure-aws-credentials@v4  # Use the AWS credentials configuration action
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}  # AWS access key from secrets
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}  # AWS secret access key from secrets
           aws-region: us-east-1  # AWS region to use
-      - name : Load secrects and save to app.env
-        run : aws secretsmanager get-secret-value --secret-id simple_bank --query SecretString --output text | jq -r 'to_entries|map("\(.key)=\(.value)")|.[]'>app.env
 
       # Step 3: Log in to Amazon ECR (Elastic Container Registry)
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1  # Use the ECR login action to authenticate Docker with ECR
+        uses: aws-actions/amazon-ecr-login@v2  # Use the ECR login action to authenticate Docker with ECR
+
+      - name : Load secrects and save to app.env
+        run : aws secretsmanager get-secret-value --secret-id simple_bank --query SecretString --output text | jq -r 'to_entries|map("\(.key)=\(.value)")|.[]'>app.env
 
       # Step 4: Build, tag, and push Docker image to Amazon ECR
       - name: Build, tag, and push docker image to Amazon ECR
         env:
-          REGISTRY: ${{ steps.login-ecr.outputs.registry }}  # Set the registry URL from the login step
-          REPOSITORY: simplebank  # Name of the repository in ECR
-          IMAGE_TAG: ${{ github.sha }}  # Use the commit SHA as the image tag for uniqueness
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}  
+          REPOSITORY: simplebank 
+          IMAGE_TAG: ${{ github.sha }}  
         run: |
           docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG . 
           docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG  # 
