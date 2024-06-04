@@ -42,3 +42,9 @@ export SecretString tp JSON : aws secretsmanager get-secret-value --secret-id si
 
 install library convert JSON to app.env : 
 aws secretsmanager get-secret-value --secret-id simple_bank --query SecretString --output text | jq -r 'to_entries|map("\(.key)=\(.value)")|.[]'>app.env
+
+login into ecr aws 
+ aws ecr get-login-password | docker login --username AWS --password-stdin 439868168242.dkr.ecr.us-east-1.amazonaws.com/simplebank
+
+docker pull image:
+docker pull  439868168242.dkr.ecr.us-east-1.amazonaws.com/simplebank:41ddcadcbf152c5fa34056b8ea2b9b8159d27ef1
