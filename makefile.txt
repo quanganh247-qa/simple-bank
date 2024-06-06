@@ -48,3 +48,10 @@ login into ecr aws
 
 docker pull image:
 docker pull  439868168242.dkr.ecr.us-east-1.amazonaws.com/simplebank:41ddcadcbf152c5fa34056b8ea2b9b8159d27ef1
+
+docker run -p 8080:8080 439868168242.dkr.ecr.us-east-1.amazonaws.com/simplebank:42020bab93221a735ef7e6186ae4ae5d0e37cc34
+
+
+RUN apk add curl
+RUN curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
+COPY --from=builder /app/migrate ./migrate
