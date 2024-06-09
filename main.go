@@ -2,16 +2,19 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	_ "github.com/lib/pq"
+	"github.com/hibiken/asynq"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rakyll/statik/fs"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/techschool/simplebank/mail"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -21,13 +24,14 @@ import (
 	_ "tutorial.sqlc.dev/app/doc/statik"
 	"tutorial.sqlc.dev/app/gapi"
 	"tutorial.sqlc.dev/app/pb"
+	"tutorial.sqlc.dev/app/worker"
 )
 
-// const (
-// 	dbDriver  = "postgres"
-// 	dbSource  = "postgres://root:fHWFyt98gPR51h3NxjcroWoIscjt7QOb@dpg-cp649mmn7f5s73a6r8ag-a.oregon-postgres.render.com/simple_bank_7qc2"
-// 	adrServer = "0.0.0.0:8080"
-// )
+var interruptSignals = []os.Signal{
+	os.Interrupt,
+	syscall.SIGTERM,
+	syscall.SIGINT,
+}
 
 func main() {
 	var err error
@@ -40,23 +44,34 @@ func main() {
 	if config.Env == "development" {
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 	}
-
-	conn, err := sql.Open(config.DBDriver, config.DBSource)
+	//********************************************************************
+	//********************************************************************
+	ctx, stop := signal.NotifyContext(context.Background(), interruptSignals...)
+	defer stop()
+	connPool, err := pgxpool.New(ctx, config.DBSource)
 	if err != nil {
-		log.Fatal().Msg("cannot connect to db:")
+		log.Fatal().Err(err).Msg("cannot connect to db")
+	}
+	store := db.NewStore(connPool)
+	//********************************************************************
+	//********************************************************************
+	redisOpt := asynq.RedisClientOpt{
+		Addr: config.RedisAddress,
 	}
 
-	store := db.NewsStore(conn)
-	go runGatewayServer(config, store)
-	rungRPCServer(config, store)
+	taskDistributor := worker.NewRedisTaskDistributor(redisOpt)
+
+	go runTaskProccessor(config, redisOpt, store)
+	go runGatewayServer(config, store, taskDistributor)
+	rungRPCServer(config, store, taskDistributor)
 
 }
 
 //use evans to call gRPC
 //evans --host localhost --port 9090 repl
 
-func rungRPCServer(config util.Config, store db.Store) {
-	server, err := gapi.NewServer(config, store)
+func rungRPCServer(config util.Config, store db.Store, taskDistributor worker.TaskDistributor) {
+	server, err := gapi.NewServer(config, store, taskDistributor)
 	if err != nil {
 		log.Fatal().Msg("cannot connect server")
 	}
@@ -96,9 +111,9 @@ func runGinServer(config util.Config, store db.Store) {
 	}
 }
 
-func runGatewayServer(config util.Config, store db.Store) {
+func runGatewayServer(config util.Config, store db.Store, taskDistributor worker.TaskDistributor) {
 	// Create a new server instance
-	server, err := gapi.NewServer(config, store)
+	server, err := gapi.NewServer(config, store, taskDistributor)
 	if err != nil {
 		log.Fatal().Msg("cannot connect server")
 	}
@@ -152,4 +167,14 @@ func runGatewayServer(config util.Config, store db.Store) {
 		log.Fatal().Msg("cannot start gRPC server")
 	}
 
+}
+
+func runTaskProccessor(config util.Config, redisOpt asynq.RedisClientOpt, store db.Store) {
+	mailer := mail.NewGmailSender(config.EmailSenderName, config.EmailSenderAddress, config.EmailSenderPassword)
+	taskProccessor := worker.NewRedisTaskProccessor(redisOpt, store, mailer)
+	log.Info().Msg("start task poccessor")
+	err := taskProccessor.Start()
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to start task proccesor")
+	}
 }
