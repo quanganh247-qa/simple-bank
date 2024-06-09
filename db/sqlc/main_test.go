@@ -1,11 +1,12 @@
 package db
 
 import (
-	"database/sql"
+	"context"
 	"log"
 	"os"
 	"testing"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/lib/pq"
 	"tutorial.sqlc.dev/app/db/util"
 )
@@ -15,27 +16,21 @@ import (
 // 	dbSource = "postgres://root:fHWFyt98gPR51h3NxjcroWoIscjt7QOb@dpg-cp649mmn7f5s73a6r8ag-a.oregon-postgres.render.com/simple_bank_7qc2"
 // )
 
-var testQueries *Queries
-var db *sql.DB
+var testStore Store
 
 func TestMain(m *testing.M) {
-	config, e := util.LoadConfig("../..")
-	if e != nil {
-		log.Fatal("cannot loaf config:", e)
+	config, err := util.LoadConfig("../..")
+	if err != nil {
+		log.Fatal("cannot load config:", err)
 	}
-	// Establish a database connection
-	var err error
-	db, err = sql.Open(config.DBDriver, config.DBSource)
+
+	connPool, err := pgxpool.New(context.Background(), config.DBSource)
 	if err != nil {
 		log.Fatal("cannot connect to db:", err)
 	}
-	defer db.Close()
 
-	// Initialize the testQueries object
-	testQueries = New(db)
-	if testQueries == nil {
-		log.Fatalf("testQueries is nil")
-	}
+	testStore = NewStore(connPool)
+	os.Exit(m.Run())
 
 	// Run the tests
 	code := m.Run()

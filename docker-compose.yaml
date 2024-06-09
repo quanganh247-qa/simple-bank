@@ -8,6 +8,11 @@ services:
       - POSTGRES_DB=simple_bank
     ports:
       - "5433:5432"
+    volumes:
+      - data-volume:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7.0.15-alpine
 
   api:
     build:
@@ -15,9 +20,13 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
+      - "9090:9090"
     environment:
       - DB_SOURCE=postgres://root:secret@postgres:5432/simple_bank?sslmode=disable
+      - REDIS_ADDRESS=0.0.0.0:6379
     depends_on:
       - postgres
     entrypoint: ["/app/wait-for.sh","postgres:5432", "--","/app/start.sh"]
     command : ["/app/main"]
+  volumes:
+    data-volume:

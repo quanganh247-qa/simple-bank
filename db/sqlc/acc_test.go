@@ -20,7 +20,7 @@ func creatRadomAccount(t *testing.T) Account {
 		Currency: util.RandomCurrency(),
 	}
 
-	acc, err := testQueries.CreateAccount(context.Background(), params)
+	acc, err := testStore.CreateAccount(context.Background(), params)
 
 	if err != nil {
 		fmt.Println('a')
@@ -42,7 +42,7 @@ func TestCreateAccount(t *testing.T) {
 
 func TestGetAccount(t *testing.T) {
 	acc1 := creatRadomAccount(t)
-	acc2, err := testQueries.GetAccount(context.Background(), acc1.ID)
+	acc2, err := testStore.GetAccount(context.Background(), acc1.ID)
 
 	// If there is an error, the test will fail here.
 	require.NoError(t, err)
@@ -64,7 +64,7 @@ func TestUpdateAccount(t *testing.T) {
 		Balance: util.RandomMoney(),
 	}
 
-	acc2, err := testQueries.UpdateAccount(context.Background(), arg)
+	acc2, err := testStore.UpdateAccount(context.Background(), arg)
 
 	require.NoError(t, err)
 	require.NotEmpty(t, acc2)
@@ -76,9 +76,9 @@ func TestUpdateAccount(t *testing.T) {
 
 func TestDeleteAccount(t *testing.T) {
 	acc1 := creatRadomAccount(t)
-	err := testQueries.DeleteAccount(context.Background(), acc1.ID)
+	err := testStore.DeleteAccount(context.Background(), acc1.ID)
 	require.NoError(t, err)
-	acc2, err := testQueries.GetAccount(context.Background(), acc1.ID)
+	acc2, err := testStore.GetAccount(context.Background(), acc1.ID)
 	require.Error(t, err)
 	require.EqualError(t, err, sql.ErrNoRows.Error())
 	require.Empty(t, acc2)
@@ -97,7 +97,7 @@ func TestGetListAccounts(t *testing.T) {
 		Offset: 0,
 	}
 
-	accs, err := testQueries.ListAccounts(context.Background(), arg)
+	accs, err := testStore.ListAccounts(context.Background(), arg)
 	require.NoError(t, err)
 	require.NotEmpty(t, accs)
 	for _, acc := range accs {

@@ -7,19 +7,21 @@ import (
 	"tutorial.sqlc.dev/app/db/token"
 	"tutorial.sqlc.dev/app/db/util"
 	"tutorial.sqlc.dev/app/pb"
+	"tutorial.sqlc.dev/app/worker"
 )
 
 // Server serves gRPC requests for our banking service.
 type Server struct {
 	// It ensures server also have all the medthod from serice SimpleBank interface
 	pb.UnimplementedSimpleBankServer
-	config     util.Config
-	store      db.Store
-	tokenMaker token.Maker
+	config          util.Config
+	store           db.Store
+	tokenMaker      token.Maker
+	taskDistributor worker.TaskDistributor
 }
 
 // NewServer creates a new gRPC server.
-func NewServer(config util.Config, store db.Store) (*Server, error) {
+func NewServer(config util.Config, store db.Store, taskDistributor worker.TaskDistributor) (*Server, error) {
 
 	tokenMaker, err := token.NewPasetoMaker(config.TokenSymmetricKey)
 	// tokenMaker, err := token.NewJWTMaker(config.TokenSymmetricKey)
@@ -28,9 +30,10 @@ func NewServer(config util.Config, store db.Store) (*Server, error) {
 	}
 
 	server := &Server{
-		config:     config,
-		store:      store,
-		tokenMaker: tokenMaker,
+		config:          config,
+		store:           store,
+		tokenMaker:      tokenMaker,
+		taskDistributor: taskDistributor,
 	}
 
 	return server, nil
